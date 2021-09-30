@@ -26,6 +26,11 @@ pub const CH_INDEX :u8 = 5;
 pub const DH_INDEX :u8 = 6;
 pub const BH_INDEX :u8 = 7;
 
+// eflags indexes
+pub const CARRY_INDEX: u8 = 0;
+pub const ZERO_INDEX: u8 = 6;
+pub const SIGN_INDEX: u8 = 7;
+pub const OVERFLOW_INDEX: u8 = 11;
 pub struct GeneralRegisters {
     pub eax: u32, pub ecx: u32, pub edx: u32, pub ebx: u32,  
     pub esp: u32, pub ebp: u32,
