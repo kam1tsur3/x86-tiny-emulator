@@ -56,7 +56,18 @@ impl Emulator {
             0x54 | 0x55 | 0x56 | 0x57 => self.push_r32(),
             0x58 | 0x59 | 0x5a | 0x5b |
             0x5c | 0x5d | 0x5e | 0x5f => self.pop_r32(),
+            0x68 => self.push_imm32(),
             0x6a => self.push_imm8(),
+            0x70 => self.jo(),
+            0x71 => self.jno(),
+            0x72 => self.jc(),
+            0x73 => self.jnc(),
+            0x74 => self.jz(),
+            0x75 => self.jnz(),
+            0x78 => self.js(),
+            0x79 => self.jns(),
+            0x7c => self.jl(),
+            0x7E => self.jle(),
             0x83 => self.code_83(),
             0x89 => self.mov_rm32_r32(),
             0x8b => self.mov_r32_rm32(),
@@ -139,6 +150,11 @@ impl Emulator {
         } else {
             self.eflags &= 0xffffffff ^ mask;
         }
+    }
+    
+    fn is_set_eflags(&mut self, idx: u8) -> bool {
+        let mask: u32 = 1 << idx;
+        self.eflags & mask != 0
     }
 
     fn calc_memory_address(&self, modrm: &ModRM) -> u32 {
@@ -371,6 +387,59 @@ impl Emulator {
 
     fn ret(&mut self) {
         self.eip = self.pop32();
+    }
+
+    fn jo(&mut self) {
+        let diff = if self.is_set_eflags(OVERFLOW_INDEX) {self.get_sign_code8(1)} else {0};
+        self.eip += ((diff + 2) as i32 )as u32;
+    }
+
+    fn jno(&mut self) {
+        let diff = if self.is_set_eflags(OVERFLOW_INDEX) {0} else {self.get_sign_code8(1)};
+        self.eip += ((diff + 2) as i32 )as u32;
+    }
+
+    fn jc(&mut self) {
+        let diff = if self.is_set_eflags(CARRY_INDEX) {self.get_sign_code8(1)} else {0};
+        self.eip += ((diff + 2) as i32 )as u32;
+    }
+    
+    fn jnc(&mut self) {
+        let diff = if self.is_set_eflags(CARRY_INDEX) {0} else {self.get_sign_code8(1)};
+        self.eip += ((diff + 2) as i32 )as u32;
+    }
+
+    fn jz(&mut self) {
+        let diff = if self.is_set_eflags(ZERO_INDEX) {self.get_sign_code8(1)} else {0};
+        self.eip += ((diff + 2) as i32 )as u32;
+    }
+
+    fn jnz(&mut self) {
+        let diff = if self.is_set_eflags(ZERO_INDEX) {0} else {self.get_sign_code8(1)};
+        self.eip += ((diff + 2) as i32 )as u32;
+    }
+
+    fn js(&mut self) {
+        let diff = if self.is_set_eflags(SIGN_INDEX) {self.get_sign_code8(1)} else {0};
+        self.eip += ((diff + 2) as i32 )as u32;
+    }
+    
+    fn jns(&mut self) {
+        let diff = if self.is_set_eflags(SIGN_INDEX) {0} else {self.get_sign_code8(1)};
+        self.eip += ((diff + 2) as i32 )as u32;
+    }
+
+    fn jl(&mut self) {
+        let flag = self.is_set_eflags(SIGN_INDEX) != self.is_set_eflags(OVERFLOW_INDEX);
+        let diff = if flag { self.get_sign_code8(1)} else {0};
+        self.eip += ((diff+2) as i32) as u32;
+    }
+
+    fn jle(&mut self) {
+        let flag = self.is_set_eflags(ZERO_INDEX)
+            ||(self.is_set_eflags(SIGN_INDEX) != self.is_set_eflags(OVERFLOW_INDEX));
+        let diff = if flag { self.get_sign_code8(1)} else {0};
+        self.eip += ((diff+2) as i32) as u32;
     }
 
     fn near_jump(&mut self) {
